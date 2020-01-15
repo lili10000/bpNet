@@ -6,7 +6,9 @@ import(
 ) 
 
 func main()  {
-    var node InNodeMgr
+    var inNode InNodeMgr
+    var bNode BNodeMgr
+    var yNode YNodeMgr
 
 	nodeNameInit := "inNode"
     var nodeNameList []string
@@ -15,8 +17,20 @@ func main()  {
 		nodeName := fmt.Sprintf("%s_%d", nodeNameInit, i)
         nodeNameList = append(nodeNameList, nodeName)
         nodeMap[nodeName] = 0.1 + 0.1*float32(i)      
-	}
-    node.Init(nodeNameList)
-    node.DoInput(nodeMap)
-    time.Sleep(5 * time.Second) 
+    }
+    
+    inNode.InitInNodeMgr(nodeNameList)
+    
+    bNode.InitBNodeMgr(5)
+    bNode.SetInNode(&inNode)
+
+    yNode.InitYNodeMgr(1)
+    yNode.SetBNode(&bNode)
+
+    inNode.DoInput(nodeMap)
+    inNode.DoSend()
+    bNode.DoSend()
+    fmt.Println(yNode.CheckResult())
+
+    time.Sleep(1 * time.Second) 
 }
