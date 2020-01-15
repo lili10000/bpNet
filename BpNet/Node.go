@@ -2,51 +2,60 @@ package BpNet
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
+	"math/rand"
 )
 
 const initWeight float32 = 0.5
 
+type DataSync func(float32)
+
+type DoFuncByInput func(float32, float32) float32
+type ModifyValue func(float32, interface{}) float32
+type ModifyConnWeight func(float32, interface{}) float32
+
 type nodeInfo struct {
 	Weight  float32
-	Channel chan float32
+	Channel DataSync
 }
-type DoFuncByInput func(float32) float32
-type ModifyValue func(float32, interface{}) float32
-type ModifyConnWeight func(float32, string, interface{}) float32
 
 type Node struct {
-	Name    string
-	Value   float32
-	Channel chan float32
+	Name  string
+	Value float32
+	DataRecv float32
 
 	DoModifyValue      ModifyValue
 	DoModifyConnWeight ModifyConnWeight
-	DoFunc DoFuncByInput
+	DoFunc             DoFuncByInput
 
 	//private
-	nodeMap map[string]nodeInfo
+	nodeMap  map[string]nodeInfo
+	
 }
 
-func (node *Node) Init(chanSize int) {
-	newChannel := make(chan float32, chanSize)
-	node.Channel = newChannel
+func (node *Node) Init() {
 	node.nodeMap = make(map[string]nodeInfo)
 }
 
-func (node *Node) Connect(name string, nodeChan chan float32) error {
+func (node *Node) Connect(name string, channel DataSync) error {
 
 	if node.nodeMap == nil {
 		return errors.New("node haven't init")
 	}
 
 	var newNodeInfo nodeInfo
-	newNodeInfo.Channel = nodeChan
-	newNodeInfo.Weight = initWeight
+	newNodeInfo.Channel = channel
+	newNodeInfo.Weight = rand.Float32()
 
 	node.nodeMap[name] = newNodeInfo
-	fmt.Println("connect:", name)
 	return nil
+}
+
+func (node *Node) Clear(name string) {
+	_, ok := node.nodeMap[name]
+	if ok {
+		delete(node.nodeMap, name)
+	}
 }
 
 func (node *Node) GetWeigh(name string) float32 {
@@ -66,17 +75,14 @@ func (node *Node) SetWeigh(name string, weightDelta float32) {
 	}
 }
 
-func (node *Node) Update() {
-	fmt.Println(node.Name,"start work")
-	for {
-		input := <- node.Channel
-		fmt.Println(node.Name,"receive data:", input)
-		node.Value = node.DoFunc(input)
-	
-		for _, nodeInfo := range node.nodeMap{
-			channel := nodeInfo.Channel
-			channel <- nodeInfo.Weight * node.Value
-		}
+func (node *Node) RecvData(input float32) {
+	// fmt.Println("out name:", node.Name, "RecvData:", input)
+	node.DataRecv += input
+}
+
+func (node *Node) SendData() {
+	for _, connNode := range node.nodeMap {
+		connNode.Channel(node.DataRecv * connNode.Weight)
 	}
-	
+	node.DataRecv = 0
 }
