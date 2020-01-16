@@ -17,12 +17,12 @@ type BWeightParams struct {
 	YParamList []Y_Param
 }
 
-func BModifyWeight(b_get float64, inpurParam interface{}) float64 {
+func BModifyWeight(b_out float64, inpurParam interface{}) float64 {
 	params := inpurParam.(BWeightParams)
 	value := params.YParam
 	g := value.Get * (1 - value.Get) * (value.Real - value.Get)
 	
-	retn := params.StepLen * g * b_get
+	retn := params.StepLen * g *b_out
 	return retn
 }
 
@@ -64,7 +64,7 @@ func (mgr *BNodeMgr) SetInNode(inMgr *InNodeMgr) {
 
 func (mgr *BNodeMgr) DoDelta_B(Y_real []float64, Y_get []float64){
 	for _, bNode := range mgr.nodeList {
-		b_get := BDoInputFunc(bNode.DataRecv)
+		b_out := BDoInputFunc(bNode.DataRecv - bNode.Value)
 		var param BWeightParams
 		param.StepLen = mgr.StepLen
 
@@ -75,16 +75,16 @@ func (mgr *BNodeMgr) DoDelta_B(Y_real []float64, Y_get []float64){
 			param.YParam = tmp
 			param.YParamList = append(param.YParamList, tmp)
 			param.B_weight = append(param.B_weight, yNode.Weight)
-			bNode.NodeList[index].Weight += BModifyWeight(b_get, param)
+			bNode.NodeList[index].Weight += BModifyWeight(b_out, param)
 		}
-		bNode.Value += BModifyXValue(b_get, param)
+		bNode.Value += BModifyXValue(b_out, param)
 		// fmt.Println("node name:",bNode.Name, "node value:", bNode.Value)
 	}
 }
 func (mgr *BNodeMgr) GetResult_B() []float64 {
 	var retnList []float64
 	for _, node := range mgr.nodeList {
-		tmp := BDoInputFunc(node.DataRecv)
+		tmp := BDoInputFunc(node.DataRecv - node.Value)
 		retnList = append(retnList, tmp*(1-tmp))
 	}
 	return retnList

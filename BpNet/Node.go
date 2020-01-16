@@ -63,13 +63,13 @@ func (node *Node) SetWeigh(index int, weightDelta float64) {
 
 func (node *Node) RecvData(input float64) {
 	// fmt.Println("in name:", node.Name, "Data:", input)
-	node.DataRecv += input - node.Value
+	node.DataRecv += input
 
 }
 
 func (node *Node) SendData() {
 	// fmt.Println("name:", node.Name, "ready Data:", node.DataRecv)
-	sendData := node.DoFunc(node.DataRecv)
+	sendData := node.DoFunc(node.DataRecv - node.Value)
 	// fmt.Println("name:", node.Name, "cov Data:", sendData)
 
 	for _, connNode := range node.NodeList {
