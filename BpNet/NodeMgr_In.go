@@ -9,50 +9,80 @@ type InNodeMgr struct {
 }
 
 type Y_Param struct {
-	Real    float32
-	Get     float32
+	Real float64
+	Get  float64
 }
 
 type InWeightParams struct {
-	StepLen float32
-	B       float32
+	StepLen float64
+	B       float64
+	GetWeight_B []float64
 	Y_param []Y_Param
 }
 
-func InModifyWeight(x_value float32, inpurParam interface{}) float32 {
+func InModifyWeight(x_value float64, inpurParam interface{}) float64 {
 	params := inpurParam.(InWeightParams)
-	var Y_deltaSum float32 = 0
-	for _, value := range params.Y_param {
+	var Y_deltaSum float64 = 0
+	for index, value := range params.Y_param {
 		g := value.Get * (1 - value.Get) * (value.Real - value.Get)
-		Y_deltaSum += g * params.B
+		Y_deltaSum += g * params.GetWeight_B[index]
 	}
 	E := params.B * (1 - params.B) * Y_deltaSum
 	retn := params.StepLen * E * x_value
 	return retn
 }
 
-func InModifyXValue(input float32, inpurParam interface{}) float32 {
+func InModifyXValue(input float64, inpurParam interface{}) float64 {
 	return input
 }
 
-func InDoInputFunc(input, inValue float32) float32 {
+func InDoInputFunc(input float64) float64 {
 	return input
 }
 
-func (mgr *InNodeMgr) InitInNodeMgr(dataStruct []string) {
+func (mgr *InNodeMgr) InitInNodeMgr(size int) {
 	mgr.DoModifyConnWeight = InModifyWeight
 	mgr.DoModifyValue = InModifyXValue
 	mgr.DoFunc = InDoInputFunc
-	mgr.initNodes(dataStruct)
+	mgr.mgrName = "InNode"
+	mgr.initNodes(size)
 }
 
-func (mgr *InNodeMgr) DoInput(dataMap map[string]float32) {
-	for name, value := range dataMap {
-		node, ok := mgr.nodeMap[name]
-		if !ok {
-			fmt.Println(name, "not in map")
-			return
-		}
+func (mgr *InNodeMgr) DoInput(dataList []float64) {
+	if len(dataList) != len(mgr.nodeList){
+		fmt.Println("DoInput: input dataList size: ",len(dataList), " != nodeList size:", len(mgr.nodeList))
+		return
+	}
+
+	for index, value := range dataList {
+		node := mgr.nodeList[index]
 		node.RecvData(value)
+	}
+}
+
+func (mgr *InNodeMgr) DoDelta_In(Y_real []float64, Y_get []float64, B_Get []float64,B_weight[][]float64){
+	var tmpList []Y_Param
+	for index, _ := range Y_real{
+		var tmp Y_Param 
+		tmp.Get = Y_get[index]
+		tmp.Real = Y_real[index]
+		tmpList = append(tmpList, tmp)
+	}
+	
+	
+	for _, InNode := range mgr.nodeList {
+		var param InWeightParams
+		param.StepLen = mgr.StepLen
+		for index, _ := range InNode.NodeList {
+			param.Y_param = tmpList
+			param.B = B_Get[index]
+			param.GetWeight_B = B_weight[index]
+			InNode.NodeList[index].Weight += InModifyWeight(InNode.Value, param)
+		}
+	}
+}
+func (mgr *InNodeMgr) Clear_In()  {
+	for _, node := range mgr.nodeList {
+		node.DataRecv = 0
 	}
 }

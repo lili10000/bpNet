@@ -1,88 +1,80 @@
 package BpNet
 
 import (
-	"errors"
+	// "errors"
 	// "fmt"
 	"math/rand"
 )
 
-const initWeight float32 = 0.5
+const initWeight float64 = 1
 
-type DataSync func(float32)
+type DataSync func(float64)
 
-type DoFuncByInput func(float32, float32) float32
-type ModifyValue func(float32, interface{}) float32
-type ModifyConnWeight func(float32, interface{}) float32
+type DoFuncByInput func(float64) float64
+type ModifyValue func(float64, interface{}) float64
+type ModifyConnWeight func(float64, interface{}) float64
 
 type nodeInfo struct {
-	Weight  float32
+	Weight  float64
 	Channel DataSync
 }
 
 type Node struct {
 	Name  string
-	Value float32
-	DataRecv float32
+	Value float64
+	DataRecv float64
 
 	DoModifyValue      ModifyValue
 	DoModifyConnWeight ModifyConnWeight
 	DoFunc             DoFuncByInput
-
 	//private
-	nodeMap  map[string]nodeInfo
+	NodeList  []nodeInfo
 	
 }
 
 func (node *Node) Init() {
-	node.nodeMap = make(map[string]nodeInfo)
+	node.Value = 0
 }
 
-func (node *Node) Connect(name string, channel DataSync) error {
-
-	if node.nodeMap == nil {
-		return errors.New("node haven't init")
-	}
+func (node *Node) Connect(index int, channel DataSync) error {
 
 	var newNodeInfo nodeInfo
 	newNodeInfo.Channel = channel
-	newNodeInfo.Weight = rand.Float32()
+	newNodeInfo.Weight = rand.Float64()
+	// newNodeInfo.Weight = 0.1
 
-	node.nodeMap[name] = newNodeInfo
+	node.NodeList = append(node.NodeList, newNodeInfo) 
 	return nil
 }
 
-func (node *Node) Clear(name string) {
-	_, ok := node.nodeMap[name]
-	if ok {
-		delete(node.nodeMap, name)
-	}
-}
 
-func (node *Node) GetWeigh(name string) float32 {
-	var weight float32 = 0
-	tmp, ok := node.nodeMap[name]
-	if ok {
-		weight = tmp.Weight
-	}
+func (node *Node) GetWeigh(index int) float64 {
+	var weight float64 = 0
+	tmp := node.NodeList[index]
+	weight = tmp.Weight
 	return weight * node.Value
 }
 
-func (node *Node) SetWeigh(name string, weightDelta float32) {
-	tmp, ok := node.nodeMap[name]
-	if ok {
-		tmp.Weight = weightDelta
-		node.nodeMap[name] = tmp
-	}
+func (node *Node) SetWeigh(index int, weightDelta float64) {
+	tmp:= node.NodeList[index]
+	tmp.Weight = weightDelta
+	node.NodeList[index] = tmp
 }
 
-func (node *Node) RecvData(input float32) {
-	// fmt.Println("out name:", node.Name, "RecvData:", input)
-	node.DataRecv += input
+func (node *Node) RecvData(input float64) {
+	// fmt.Println("in name:", node.Name, "Data:", input)
+	node.DataRecv += input - node.Value
+
 }
 
 func (node *Node) SendData() {
-	for _, connNode := range node.nodeMap {
-		connNode.Channel(node.DataRecv * connNode.Weight)
+	// fmt.Println("name:", node.Name, "ready Data:", node.DataRecv)
+	sendData := node.DoFunc(node.DataRecv)
+	// fmt.Println("name:", node.Name, "cov Data:", sendData)
+
+	for _, connNode := range node.NodeList {
+		// fmt.Println("out name:", node.Name, "Data:", sendData*connNode.Weight, "weight:", connNode.Weight)
+		connNode.Channel(sendData * connNode.Weight)
 	}
-	node.DataRecv = 0
+	// node.DataRecv = 0
 }
