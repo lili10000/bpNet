@@ -39,11 +39,15 @@ func InModifyXValue(input float64, inpurParam interface{}) float64 {
 func InDoInputFunc(input float64) float64 {
 	return input
 }
+func InDoRealIn (realout float64) float64{
+	return realout
+}
 
 func (mgr *InNodeMgr) InitInNodeMgr(size int) {
 	mgr.DoModifyConnWeight = InModifyWeight
 	mgr.DoModifyValue = InModifyXValue
 	mgr.DoFunc = InDoInputFunc
+	mgr.DoGetRealIn = InDoRealIn
 	mgr.mgrName = "InNode"
 	mgr.initNodes(size)
 }
@@ -81,6 +85,17 @@ func (mgr *InNodeMgr) DoDelta_In(Y_real []float64, Y_get []float64, B_Get []floa
 		}
 	}
 }
+
+func (mgr *InNodeMgr) DoDelta_Weight(G []float64){
+	for _, bNode := range mgr.nodeList {
+		b_out := bNode.DataRecv
+		for index, _ := range bNode.NodeList {
+			bNode.NodeList[index].Weight += mgr.StepLen * G[index] * b_out
+		}
+	}
+}
+
+
 func (mgr *InNodeMgr) Clear_In()  {
 	for _, node := range mgr.nodeList {
 		node.DataRecv = 0

@@ -3,6 +3,7 @@ package BpNet
 import (
 	"fmt"
 )
+type GetRealIn func(float64) float64
 
 type NodeMgr struct {
 	nodeList           []*Node
@@ -11,10 +12,11 @@ type NodeMgr struct {
 	DoFunc             DoFuncByInput
 	mgrName string
 	StepLen float64
+	DoGetRealIn GetRealIn
 }
 
 func (mgr *NodeMgr) initNodes( size int) {
-	mgr.StepLen = 0.20
+	mgr.StepLen = 0.3
 
 	for i:=0; i < size; i++ {
 		node := new(Node)
@@ -23,6 +25,7 @@ func (mgr *NodeMgr) initNodes( size int) {
 		node.DoModifyValue = mgr.DoModifyValue
 		node.DoModifyConnWeight = mgr.DoModifyConnWeight
 		node.DoFunc = mgr.DoFunc
+		node.Weight = float64(i)*0.1
 		mgr.nodeList = append(mgr.nodeList, node)
 	}
 }

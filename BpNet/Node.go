@@ -29,6 +29,8 @@ type Node struct {
 	DoFunc             DoFuncByInput
 	//private
 	NodeList  []nodeInfo
+
+	Weight float64
 	
 }
 
@@ -40,7 +42,7 @@ func (node *Node) Connect(index int, channel DataSync) error {
 
 	var newNodeInfo nodeInfo
 	newNodeInfo.Channel = channel
-	newNodeInfo.Weight = rand.Float64()
+	newNodeInfo.Weight = node.Weight + rand.Float64()
 	// newNodeInfo.Weight = 0.1
 
 	node.NodeList = append(node.NodeList, newNodeInfo) 

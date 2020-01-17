@@ -7,7 +7,7 @@ import(
     "os"
     "strings"
     "strconv"
-    // "math"
+    "math"
 ) 
 
 func getTrainData(filePath string) ([][]float64){
@@ -54,20 +54,23 @@ func checkBig(input []float64) int{
 func main()  {
 
     dataList := getTrainData("train.txt")
-    // fmt.Println(dataList)
 
     var inNode InNodeMgr
     var bNode BNodeMgr
+    var bNode_1 BNodeMgr
     var yNode YNodeMgr
     inNode.InitInNodeMgr(4)
 
-    bNode.InitBNodeMgr(6)
+    bNode.InitBNodeMgr(5)
     bNode.SetInNode(&inNode)
 
-    yNode.InitYNodeMgr(3)
-    yNode.SetBNode(&bNode)
+    bNode_1.InitBNodeMgr(6)
+    bNode_1.SetBNode(&bNode)
 
-    for i:= 0; i < 100000; i++{
+    yNode.InitYNodeMgr(1)
+    yNode.SetBNode(&bNode_1)
+
+    for i:= 0; i < 10000; i++{
         for _, data := range dataList{
             if len(data) != 5{
                 break
@@ -76,26 +79,32 @@ func main()  {
             InData := data[:len(data)-1]
             resultTmp := data[len(data)-1]
 
-            // result := []float64{resultTmp}
-            result := []float64{0,0,0}
-            result[int(resultTmp)-1] = 1
+            resultTmp = resultTmp*0.3
+            result := []float64{resultTmp}
+
     
             inNode.DoInput(InData)
             inNode.DoSend()
             bNode.DoSend()
+            bNode_1.DoSend()
             Y_get := yNode.GetResult_Y()
-            // fmt.Println("GET ", Y_get)
-            B_get := bNode.GetResult_B()
-            B_weight := bNode.GetWeight_B()  
+
             yNode.DoDelta_Y(result)
-            bNode.DoDelta_B(result, Y_get)
-            inNode.DoDelta_In(result, Y_get, B_get, B_weight)
+            G_get := bNode_1.GetResult_G_from_Y(result, Y_get)
+            bNode_1.DoDelta_Weight(G_get)
+            bNode_1.DoDelta_value(G_get)
+
+            E_get := bNode_1.GetResult_E_from_Y(result, Y_get)
+            bNode.DoDelta_Weight(E_get)
+            bNode.DoDelta_value(E_get)
+            E_get = bNode.GetResult_E_from_B(E_get)
+
+            inNode.DoDelta_Weight(E_get)
 
             yNode.Clear_Y()
             bNode.Clear_B()
+            bNode_1.Clear_B()
             inNode.Clear_In()
-            // fmt.Println("REAL", result)
-            // break
         }
     }
 
@@ -110,26 +119,28 @@ func main()  {
         InData := data[:len(data)-1]
         resultTmp := data[len(data)-1]
 
-        result := []float64{0,0,0}
-
-        if int(resultTmp) > 3 {
-            fmt.Println(data)
-        }
-        result[int(resultTmp)-1] = 1
+        resultTmp = resultTmp*0.3
+        result := []float64{resultTmp}
 
         inNode.DoInput(InData)
         inNode.DoSend()
         bNode.DoSend()
+        bNode_1.DoSend()
         Y_get := yNode.GetResult_Y()
 
-        getIndex := checkBig(Y_get)
-        realIndex := checkBig(result)
-        
-        if getIndex != realIndex {
-            errSum += 1
+        getIndex := math.Abs(result[0] - Y_get[0]) <= 0.02
+        // fmt.Println("real:", result[0], "get:", Y_get[0], "result:", math.Abs(result[0] - Y_get[0]), getIndex )
+
+        if getIndex  {
+            okSum += 1
         }else{
-            okSum +=1
+            errSum  +=1
         }
+
+        yNode.Clear_Y()
+        bNode.Clear_B()
+        bNode_1.Clear_B()
+        inNode.Clear_In()
         
     }
     fmt.Println("ok:",okSum, "err:", errSum)

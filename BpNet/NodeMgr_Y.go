@@ -29,6 +29,11 @@ func YDoInputFunc(input float64) float64 {
 	return retn
 }
 
+func YDoRealIn (realout float64) float64{
+	return realout
+}
+
+
 type YNodeMgr struct {
 	NodeMgr
 	NodeRecvData map[string]float64
@@ -39,6 +44,7 @@ func (mgr *YNodeMgr) InitYNodeMgr(size int) {
 	mgr.DoModifyConnWeight = YModifyWeight
 	mgr.DoModifyValue = YModifyXValue
 	mgr.DoFunc = YDoInputFunc
+	mgr.DoGetRealIn = YDoRealIn
 	mgr.mgrName = "Ynode"
 	mgr.initNodes(size)
 }
@@ -49,6 +55,7 @@ func (mgr *YNodeMgr) SetBNode(inMgr *BNodeMgr) {
 		mgr.NodeMgr_B.AddConnect(node)
 	}
 }
+
 
 func (mgr *YNodeMgr) GetResult_Y() []float64 {
 	var retnList []float64
